@@ -45,7 +45,9 @@ async def add_xp(UserId, Amount):
                 Xp += Amount
 
                 # create a level-up depending on the amount of XP required
-
+                while Xp >= 100 * (Level ** 2):
+                    Xp -= 100 * (Level ** 2)
+                    Level += 1
 
                 # update the database with new XP
                 await connect.execute("UPDATE Users SET Xp = ?, Level = ? WHERE UserId = ?", (Xp, Level, UserId))
@@ -69,7 +71,6 @@ async def auto_user(UserId):
         await connect.commit()
 
 
-
 # function to return level and xp for printing
 async def print_level(UserId):
     async with aiosqlite.connect("level.db") as connect:
@@ -81,3 +82,15 @@ async def print_level(UserId):
                 return xp, level
             else:
                 return None, None
+            
+
+# function for Resetting level
+async def reset_level(UserId):
+    async with aiosqlite.connect("level.db") as connect:
+        async with connect.execute("SELECT UserId FROM Users WHERE UserId = ?", (UserId,)) as cursor:
+        
+            # check if the user exists first before updating
+            if await cursor.fetchone():
+                await connect.execute("UPDATE Users SET Xp = 0, Level = 1 WHERE UserId = ?", (UserId,))
+
+                await connect.commit()

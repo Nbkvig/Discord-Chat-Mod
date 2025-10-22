@@ -255,7 +255,20 @@ async def on_reaction_remove(reaction, user):
 async def level(ctx):
     user_id = str(ctx.author.id)
     xp, level = await lvl.print_level(user_id)
-    await ctx.send(f"Hello, {ctx.author.name}!\nYour current Level is {level} and Xp is at {xp}")
+    await ctx.send(f"Hello, {ctx.author.mention}!\nYour current Level is {level} and Xp is at {xp}")
+
+
+# /reset command to reset user
+@client.command()
+@has_permissions(administrator=True)
+async def reset(ctx, member: discord.Member):
+    await lvl.reset_level(member.id)
+    await ctx.send(f"{member.mention}'s level has been reset!")
+
+@reset.error
+async def reset_error(ctx, error):
+    if isinstance(error, MissingPermissions):
+        await ctx.send("❌ You do not have permission to reset levels.")
 
 
 # used to detect messages for adding XP to data base
