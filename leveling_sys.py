@@ -60,6 +60,15 @@ async def add_xp(UserId, Amount):
 
 
 
+# =======================
+# Print out a LeaderBoard
+# =======================
+async def Leaderboard(limit = 10):
+    async with aiosqlite.connect("level.db") as connect:
+        async with connect.execute("SELECT UserId, Level, Xp FROM Users ORDER BY Level DESC, Xp DESC LIMIT ?", (limit,)) as cursor:
+            return await cursor.fetchall()
+
+
 # Add user to the database
 async def auto_user(UserId):
     async with aiosqlite.connect("level.db") as connect:
@@ -71,17 +80,27 @@ async def auto_user(UserId):
         await connect.commit()
 
 
+# Delete User from Database
+async def auto_delete(UserId):
+    async with aiosqlite.connect("level.db") as connect:
+        # delete the user from Database
+        await connect.execute("DELETE FROM Users WHERE UserId = ?", (UserId,))
+        await connect.commit()
+
+
 # function to return level and xp for printing
 async def print_level(UserId):
     async with aiosqlite.connect("level.db") as connect:
         async with connect.execute("SELECT Xp, Level FROM Users WHERE UserId = ?", (UserId,)) as cursor:
             results = await cursor.fetchone()
             
+            # check if results returned something
             if results: 
                 xp, level = results
                 return xp, level
             else:
                 return None, None
+            
             
 
 # function for Resetting level

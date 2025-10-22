@@ -255,7 +255,36 @@ async def on_reaction_remove(reaction, user):
 async def level(ctx):
     user_id = str(ctx.author.id)
     xp, level = await lvl.print_level(user_id)
+
+    # creating a embed
+    embed = discord.Embed(title = f"{ctx.author.display_name}'s Level Info", color=discord.Color.blue())
+
+    embed.add_field(name="Level", value=level, inline=True)
+    embed.add_field(name="XP", value=xp, inline=True)
+
+    # adding a footer
+    embed.set_footer(text="Keep chatting to earn more XP!")
+
     await ctx.send(f"Hello, {ctx.author.mention}!\nYour current Level is {level} and Xp is at {xp}")
+
+@client.command()
+async def leaderboard(ctx):
+    top_users = await lvl.Leaderboard(limit=10)  # fetch top 10
+
+    if not top_users:
+        await ctx.send("No users found in the leaderboard.")
+        return
+
+    embed = discord.Embed(title="🏆 Leaderboard", color=discord.Color.gold())
+
+    for i, (user_id, level, xp) in enumerate(top_users, start=1):
+        # get the Member object from the guild
+        member = ctx.guild.get_member(int(user_id))
+        name = member.display_name if member else f"User ID {user_id}"  # fallback if not in server
+        embed.add_field(name=f"{i}. {name}", value=f"Level {level} | XP {xp}", inline=False)
+
+    await ctx.send(embed=embed)
+
 
 
 # /reset command to reset user
@@ -300,10 +329,13 @@ async def on_member_join(member):
     await lvl.auto_user(user_id)
     await member.send()
 
+# When auto delete user from DB upon leaving server
 @client.event
 async def on_member_remove(member):
+    user_id = str(member.id)
+    await lvl.auto_delete(user_id)
+    print(f"{member.display_name} has left the server.")
     await member.send()
-
 
 # ==========================
 # Music Playback
@@ -313,7 +345,9 @@ async def on_member_remove(member):
 @client.command()
 @has_permissions(kick_members=True)
 async def kick(ctx, member: discord.Member, *, reason=None):
+    user_id = str(member.id)
     await member.kick(reason=reason)
+    await lvl.auto_delete(user_id)
     await ctx.send(f'{member} has been kicked.')
     
 @kick.error
@@ -324,6 +358,8 @@ async def kick_error(ctx, error):
 @client.command()
 @has_permissions(ban_members=True)
 async def ban(ctx, member: discord.Member, *, reason=None):
+    user_id = str(member.id)
+    await lvl.auto_delete(user_id)
     await member.ban(reason=reason)
     await ctx.send(f'{member} has been banned.')
 
