@@ -5,7 +5,7 @@ import leveling_sys as lvl
 import asyncio
 import yt_dlp
 from threading import Thread
-from flask import Flask, request, jsonify, render_template
+#from flask import Flask, request, jsonify, render_template
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 from discord import Member
