@@ -1,5 +1,18 @@
 # Ryan's Contributions
 
+## 10/22/25
+### What I did: 
+* Moved the reaction roles implementation into a cog. 
+* `async def on_ready` was defined three times. Put everything into one spot to avoid confusion. 
+
+### What's next: 
+* Create basic moderation tools. 
+* Create an audit logger. 
+* Implement into front end. 
+
+### **What broke or Got Weird**
+* moderation.py has no implementation, so it will say that it wasn't loaded correctly everytime the bot boots. This is ok for now, since the bot will still run.
+
 ## 10/17/25
 ### What I did: 
 * Completed basic reaction roles command. Bot embeds a message for color roles, looks for reactions, and assigns roles accordingly. 

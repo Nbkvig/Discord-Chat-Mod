@@ -5,7 +5,6 @@ import leveling_sys as lvl
 import asyncio
 import yt_dlp
 from threading import Thread
-#from flask import Flask, request, jsonify, render_template
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 from discord import Member
@@ -22,91 +21,8 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 if TOKEN is None:
     raise ValueError("No Token Found.")
 
-class Client(commands.Bot):
-    async def on_ready(self):
-        print(f'logged in as {self.user}')
-
-        try:
-            guild = discord.Object(id=GUILD_ID)
-            synced = await self.tree.sync(guild=guild)
-            print(f'Synced {len(synced)} commands to guild {guild.id}')
-
-        except Exception as e:
-            print(f'Error syncing commands: {e}')
-
-    async def on_message(self, message):
-        if message.author == self.user:
-            return
-            
-        if message.content.startswith('hello'):
-            await message.channel.send(f'Hi there {message.author}')
-            await self.process_commands(message)
-
-
-    """async def on_reaction_add(self, reaction, user):
-        if user.bot:
-                return
-            
-        guild = reaction.message.guild
-
-        if not guild:
-            return
-            
-        if hasattr(self, "colour_role_message_id") and reaction.message.id != self.colour_role_message_id:
-            return 
-            
-        emoji = str(reaction.emoji)
-            
-        reaction_role_map = {
-            '❤️': 'Red',
-            '💙': 'Blue',
-            '💚': 'Green',
-            '💛': 'Yellow',
-            '🧡': 'Orange'
-        }
-
-        if emoji in reaction_role_map:
-            role_name = reaction_role_map[emoji]
-            role = discord.utils.get(guild.roles, name=role_name)
-
-            if role and user:
-                    await user.add_roles(role)
-                    print(f"Assigned {role_name} to {user}")
-        
-    async def on_reaction_remove(self, reaction, user):
-        if user.bot:
-            return
-            
-        guild = reaction.message.guild
-
-        if not guild:
-            return
-            
-        if hasattr(self, "colour_role_message_id") and reaction.message.id != self.colour_role_message_id:
-            return 
-            
-        emoji = str(reaction.emoji)
-            
-        reaction_role_map = {
-            '❤️': 'Red',
-            '💙': 'Blue',
-            '💚': 'Green',
-            '💛': 'Yellow',
-            '🧡': 'Orange'
-        }
-
-        if emoji in reaction_role_map:
-            role_name = reaction_role_map[emoji]
-            role = discord.utils.get(guild.roles, name=role_name)
-
-            if role and user:
-                    await user.remove_roles(role)
-                    print(f"Remove {role_name} from {user}") """
-
-
-
-
-
+# TODO: We need to make this more portable. 
+GUILD_ID = 1415377687526248582
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -120,16 +36,16 @@ client = commands.Bot(command_prefix="/", intents=intents)
 # initialize database on startup
 @client.event
 async def on_ready():
-    await lvl.init_db()
+    print("Bot connecting...")
 
-    await client.tree.sync(guild=GUILD_ID)
-    print("Ready")
+    # initialize database on startup
+    await lvl.init_db()
 
     # Multithreading for Flask
     flask_thread = Thread(target=flask_app.run_flask)
     flask_thread.daemon = True
     flask_thread.start()
-
+    
     # This creates a file guilds.txt that stores all the servers that the bot is in. 
     file = open('guilds.txt', 'w+')
     guilds = client.guilds
@@ -138,113 +54,38 @@ async def on_ready():
         file.write(f'{guild.id}:{guild.name}\n')
     file.close()
 
+    # Load cogs
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            cog_name = f'cogs.{filename[:-3]}'
+            try:
+                await client.load_extension(cog_name)
+                print(f'Loaded cog: {cog_name}')
+            except Exception as e:
+                print(f'Failed to load {cog_name}: {e}')
+
+    # Sync slash commands
+    try:
+        guild = discord.Object(id=GUILD_ID)
+        synced = await client.tree.sync(guild=guild)
+        print(f'Synced {len(synced)} commands to guild {guild.id}')
+    except Exception as e:
+        print(f'Error syncing commands: {e}')
+
+    # Prints if the bot is running
+    print(f"✅ Bot is live. Logged in as {client.user}")
+
+async def on_message(self, message):
+        if message.author == self.user:
+            return
+            
+        if message.content.startswith('hello'):
+            await message.channel.send(f'Hi there {message.author}')
+            await self.process_commands(message)
+
 @client.command()
 async def test(ctx):
     await ctx.send("Test")
-
-
-# ========================================
-# Reaction Roles
-# ========================================
-
-# React to a message to get certain roles
-
-# TODO: Change ID so that it gets it from guilds.txt 
-GUILD_ID = discord.Object(id=1415377687526248582)
-
-@client.tree.command(name="colourroles", description="Create a message that lets users pick a colour role", guild=GUILD_ID)
-async def colour_roles(interaction: discord.Interaction):
-    # Check admin
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("This command requires admin permissions.", ephemeral=True)
-        return
-    
-    # Discord requires something to respond within three seconds of it being called. 
-    # There's not really a way to make any of this quicker. This ephermeral stops discord
-    # from stopping a function before it completes
-    await interaction.response.defer(ephemeral=True)
-    
-    description = (
-        "React to this message to get your color role!\n\n"
-        "❤️ Red\n"
-        "💙 Blue\n"
-        "💚 Green\n"
-        "💛 Yellow\n"
-        "🧡 Orange\n"
-    )
-    
-    embed = discord.Embed(title="Pick your color", description=description, color=discord.Color.blurple())
-    message = await interaction.channel.send(embed=embed)
-
-    emojis = ['❤️', '💙', '💚', '💛', '🧡']
-    for emoji in emojis: 
-        await message.add_reaction(emoji)
-
-    client.colour_role_message_id = message.id
-
-    await interaction.followup.send("Colour role message created!", ephemeral=True)
-
-@client.event
-async def on_reaction_add(reaction, user):
-    if user.bot:
-        return
-    
-    guild = reaction.message.guild
-    if not guild:
-        return
-        
-    if hasattr(client, "colour_role_message_id") and reaction.message.id != client.colour_role_message_id:
-        return 
-        
-    emoji = str(reaction.emoji)
-    
-    reaction_role_map = {
-        '❤️': 'Red',
-        '💙': 'Blue',
-        '💚': 'Green',
-        '💛': 'Yellow',
-        '🧡': 'Orange'
-    }
-
-    if emoji in reaction_role_map:
-        role_name = reaction_role_map[emoji]
-        role = discord.utils.get(guild.roles, name=role_name)
-        member = guild.get_member(user.id)  # Convert User to Member
-        
-        if role and member:
-            await member.add_roles(role)
-            print(f"Assigned {role_name} to {member}")
-
-@client.event
-async def on_reaction_remove(reaction, user):
-    if user.bot:
-        return
-        
-    guild = reaction.message.guild
-    if not guild:
-        return
-        
-    if hasattr(client, "colour_role_message_id") and reaction.message.id != client.colour_role_message_id:
-        return 
-        
-    emoji = str(reaction.emoji)
-    
-    reaction_role_map = {
-        '❤️': 'Red',
-        '💙': 'Blue',
-        '💚': 'Green',
-        '💛': 'Yellow',
-        '🧡': 'Orange'
-    }
-
-    if emoji in reaction_role_map:
-        role_name = reaction_role_map[emoji]
-        role = discord.utils.get(guild.roles, name=role_name)
-        member = guild.get_member(user.id)  # Convert User to Member
-        
-        if role and member:
-            await member.remove_roles(role)
-            print(f"Removed {role_name} from {member}")
 
 
 # ========================================
@@ -459,9 +300,11 @@ async def start_playback(ctx):
 
 
 # ======= MUSIC COMMANDS =======
-@client.event
-async def on_ready():
-    print(f"✅ Logged in as {client.user}")
+
+# Use the on_ready(): at the top of the file.
+# Re defining the existing function broke everything else. 
+# Python isn't smart enough as a language to warn you when you define a function twice, so you 
+# have to be really careful. 
 
 @client.command()
 async def play(ctx, *, url):
