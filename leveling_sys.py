@@ -26,6 +26,15 @@ async def init_db():
             else:
                 print("❌ Users table not found!")
 
+# fetch the users level requirement
+async def req_xp(UserId):
+    async with aiosqlite.connect("level.db" ) as connect:
+        async with connect.execute("SELECT Level FROM Users WHERE UserId = ?", (UserId,)) as cursor:
+            result = await cursor.fetchone()
+
+            if result:
+                level = result[0]
+                return 100 * (level ** 2)
 
 
 # =================================
@@ -44,11 +53,14 @@ async def add_xp(UserId, Amount):
                 Xp, Level = result
                 Xp += Amount
 
+                prev_level = Level
+
                 # create a level-up depending on the amount of XP required
                 while Xp >= 100 * (Level ** 2):
                     Xp -= 100 * (Level ** 2)
                     Level += 1
-
+                
+                
                 # update the database with new XP
                 await connect.execute("UPDATE Users SET Xp = ?, Level = ? WHERE UserId = ?", (Xp, Level, UserId))
 
@@ -57,7 +69,17 @@ async def add_xp(UserId, Amount):
                 await connect.execute("INSERT INTO Users (UserId, Xp) VALUES (?, ?)", (UserId, Amount))
 
             await connect.commit()
+        
+        return prev_level, Level
 
+
+
+# ==================================
+# Helper function for leveled_up
+# =================================
+async def check_levelup(message, prev_level, curr_level):
+    if prev_level < curr_level:
+        await message.channel.send(f"🎉 {message.author.mention} has leveled up to **Level {curr_level}!**")
 
 
 # =======================

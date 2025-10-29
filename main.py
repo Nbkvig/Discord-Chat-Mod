@@ -96,17 +96,20 @@ async def test(ctx):
 async def level(ctx):
     user_id = str(ctx.author.id)
     xp, level = await lvl.print_level(user_id)
+    req_xp = await lvl.req_xp(user_id)
 
     # creating a embed
     embed = discord.Embed(title = f"{ctx.author.display_name}'s Level Info", color=discord.Color.blue())
 
     embed.add_field(name="Level", value=level, inline=True)
-    embed.add_field(name="XP", value=xp, inline=True)
+    embed.add_field(name="XP", value=f"{xp} / {req_xp}", inline=True)
 
     # adding a footer
-    embed.set_footer(text="Keep chatting to earn more XP!")
+    embed.set_footer(text="💬 Keep chatting to earn more XP! 💬")
 
-    await ctx.send(f"Hello, {ctx.author.mention}!\nYour current Level is {level} and Xp is at {xp}")
+    await ctx.send(embed=embed)
+
+
 
 @client.command()
 async def leaderboard(ctx):
@@ -155,7 +158,10 @@ async def on_message(message):
 
     # fetch the user's id 
     UserId = str(message.author.id)
-    await lvl.add_xp(UserId, 10)
+    prev_lvl, curr_lvl = await lvl.add_xp(UserId, 10)
+
+    # sends a notification to user once leveled up
+    await lvl.check_levelup(message, prev_lvl, curr_lvl)
 
     # Allow other bot commands (like /level or /test) to still work after this event
     await client.process_commands(message)
