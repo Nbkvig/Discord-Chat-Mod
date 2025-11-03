@@ -1,5 +1,16 @@
 # Ryan's Contributions
 
+## 11/3/25
+### What I did: 
+* I worked mostly on the dashboard, which is in a separate repository. Its in a barebones state. Focused on getting it functional, not pretty. 
+* Created a working API that feeds data from main.py to the dashboard. 
+
+### What's next: 
+* Update the API so we can feed data from the dashboard. 
+
+### **What broke or Got Weird**
+* Flask will occupy a port after termination in a zombie process. Need to configure a tool that kills the process before starting it again, otherwise the bot will run without the API. 
+
 ## 10/22/25
 ### What I did: 
 * Moved the reaction roles implementation into a cog. 

@@ -1,8 +1,8 @@
 discord.py
 py-cord
 aiohttp
-beautifulsoup4
 python-dotenv
 aiosqlite
 yt_dlp
 PyNaCl
+flask
