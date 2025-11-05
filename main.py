@@ -234,138 +234,148 @@ async def leave(ctx):
 
 
 
+# =======================
+# YOUTUBE PLAYER
+# =======================
+
+# FFmpeg options for streaming
+FFMPEG_OPTIONS = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn -c:a libopus -f opus'
+}
+
+# YTDL options to get playable audio URLs
+ytdl_opts = {
+    'format': 'bestaudio/best',
+    'quiet': True,
+    'default_search': 'ytsearch',
+    'noplaylist': True,
+}
+ytdl = yt_dlp.YoutubeDL(ytdl_opts)
+
+# Playlist instance
 playlist = Playlist()
-# ======= HELPER FUNCTION =======
-async def play_song(ctx, url):
-    """Plays a YouTube song in the voice channel."""
-    voice_client = ctx.voice_client
-    if not voice_client:
-        await ctx.send("The bot is not connected to a voice channel.")
-        return
-
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "noplaylist": True,
-        "quiet": True,
-        "default_search": "ytsearch",
-        "extract_flat": "in_playlist",
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        if "entries" in info:
-            info = info["entries"][0]
-        source_url = info["url"]
-        title = info.get("title", "Unknown Title")
-        uploader = info.get("uploader", "Unknown")
-        duration = info.get("duration")
-        webpage_url = info.get("webpage_url")
-        thumbnail = info.get("thumbnail")
-
-    # Create a Song instance
-    song = Song(
-        origin="YouTube",
-        host=ctx.author.name,
-        base_url=source_url,
-        uploader=uploader,
-        title=title,
-        duration=duration,
-        webpage_url=webpage_url,
-        thumbnail=thumbnail,
-    )
-
-    # Add to playlist
-    playlist.add_track(song)
-    await ctx.send(embed=song.info.format_output("Added to Queue"))
-
-    # If not already playing, start playback
-    if not voice_client.is_playing():
-        await start_playback(ctx)
 
 
-async def start_playback(ctx):
-    """Plays the next song in the playlist queue."""
-    if playlist.get_len() == 0:
-        await ctx.send("Queue is empty.")
-        return
-
-    current_song = playlist.play_next()
-    voice_client = ctx.voice_client
-    if not voice_client:
-        await ctx.send("Not connected to a voice channel.")
-        return
-
-    ffmpeg_options = {"options": "-vn"}
-    source = await discord.FFmpegOpusAudio.from_probe(current_song.base_url, **ffmpeg_options)
-    voice_client.play(
-        source,
-        after=lambda e: asyncio.run_coroutine_threadsafe(start_playback(ctx), client.loop),
-    )
-
-    await ctx.send(embed=current_song.info.format_output("Now Playing 🎵"))
-
-
-# ======= MUSIC COMMANDS =======
-
-# Use the on_ready(): at the top of the file.
-# Re defining the existing function broke everything else. 
-# Python isn't smart enough as a language to warn you when you define a function twice, so you 
-# have to be really careful. 
-
+# =======================
+# HELPER FUNCTIONS
+# =======================
 @client.command()
-async def play(ctx, *, url):
-    """Add a song to the queue and play it."""
-    await play_song(ctx, url)
+async def play_next(ctx):
+    next_song = playlist.play_next()
+    vc = ctx.voice_client
+
+    if not vc or not next_song:
+        await ctx.send("✅ Playlist ended.")
+        return
+
+    try:
+        # Fetch fresh stream URL from the original YouTube page
+        info = ytdl.extract_info(next_song.page_url, download=False)
+        source_url = info['url']
+        next_song.base_url = source_url  # store current playable URL
+
+        # Play the audio
+        vc.play(
+            discord.FFmpegOpusAudio(source_url, **FFMPEG_OPTIONS),
+            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), ctx.bot.loop)
+        )
+
+        await ctx.send(embed=next_song.info.format_output("Now Playing 🎵"))
+
+    except Exception as e:
+        await ctx.send(f"❌ Error playing {next_song.info.title}: {e}")
+        print(f"Error in play_next: {e}")
+        await play_next(ctx)  # skip to next song if current fails
 
 
+# =======================
+# MUSIC COMMANDS
+# =======================
 @client.command()
-async def skip(ctx):
-    """Skip the current song."""
-    voice_client = ctx.voice_client
-    if voice_client and voice_client.is_playing():
-        voice_client.stop()
-        await ctx.send("Skipped the current song.")
-    else:
-        await ctx.send("No song is currently playing.")
+async def play(ctx, *, query):
+    """Add a song to the playlist and play it."""
+    vc = ctx.voice_client
+    if not vc:
+        if ctx.author.voice:
+            vc = await ctx.author.voice.channel.connect()
+        else:
+            await ctx.send("❌ You need to be in a voice channel.")
+            return
 
+    try:
+        # Extract info from YouTube (or search)
+        info = ytdl.extract_info(query, download=False)
+        if 'entries' in info:  # search result
+            info = info['entries'][0]
+
+        # Create Song instance
+        song = Song(
+            origin="YouTube",
+            host=ctx.author.name,
+            base_url=None,
+            uploader=info.get('uploader', 'Unknown'),
+            title=info.get('title', 'Unknown'),
+            duration=info.get('duration'),
+            page_url=info.get('webpage_url'),
+            thumbnail=info.get('thumbnail')
+        )
+
+        # Add song to playlist
+        playlist.add_track(song)
+        await ctx.send(embed=song.info.format_output("Added to Queue"))
+
+        # Start playback if nothing is playing
+        if not vc.is_playing() and playlist.get_len() > 0:
+            await play_next(ctx)
+
+    except Exception as e:
+        await ctx.send(f"❌ Failed to add/play song: {e}")
+        print(f"Error in play command: {e}")
 
 @client.command()
 async def pause(ctx):
     """Pause the current song."""
-    voice_client = ctx.voice_client
-    if voice_client and voice_client.is_playing():
-        voice_client.pause()
-        await ctx.send("Paused playback.")
+    vc = ctx.voice_client
+    if vc and vc.is_playing():
+        vc.pause()
+        await ctx.send("⏸ Paused playback")
     else:
-        await ctx.send("Nothing is playing to pause.")
-
-
+        await ctx.send("❌ Nothing is currently playing.")
+        
 @client.command()
 async def resume(ctx):
-    """Resume paused playback."""
-    voice_client = ctx.voice_client
-    if voice_client and voice_client.is_paused():
-        voice_client.resume()
-        await ctx.send("Resumed playback.")
+    vc = ctx.voice_client
+    if vc and vc.is_paused():
+        vc.resume()
+        await ctx.send("▶ Resumed playback")
     else:
-        await ctx.send("Nothing is paused right now.")
+        await ctx.send("❌ Nothing is paused.")
 
 
 @client.command()
 async def queue(ctx):
-    """Show the current playlist queue."""
-    if playlist.get_len() == 0:
-        await ctx.send("The queue is empty.")
+    if playlist.get_len() == 0 and not playlist.playlist_history:
+        await ctx.send("❌ The playlist is empty")
         return
 
-    queue_list = [f"{i+1}. {s.info.title}" for i, s in enumerate(playlist.playlist)]
-    message = "\n".join(queue_list)
-    await ctx.send(f"**Current Queue:**\n{message}")
+    lines = []
+    if playlist.playlist_history:
+        current = playlist.playlist_history[-1]
+        lines.append(f"🎵 Now playing: {current.info.title}")
+    for i, song in enumerate(playlist.playlist):
+        lines.append(f"{i+1}. {song.info.title}")
+
+    await ctx.send("\n".join(lines))
+
 
 @client.command()
 async def clear(ctx):
-    """Clear the playlist and history."""
-    message = playlist.clear_playlist()
-    await ctx.send(message)
-    
+    vc = ctx.voice_client
+    if vc and vc.is_playing():
+        vc.stop()
+    playlist.clear_playlist()
+    await ctx.send("✅ Cleared the playlist")
+
+
 client.run(TOKEN)
