@@ -377,5 +377,15 @@ async def clear(ctx):
     playlist.clear_playlist()
     await ctx.send("✅ Cleared the playlist")
 
+@client.command()
+async def skip(ctx):
+    """Skip the current song and play the next one."""
+    vc = ctx.voice_client
+    if vc and vc.is_playing():
+        vc.stop()
+        await ctx.send("⏭️ Skipped the current song.")
+    else:
+        await ctx.send("❌ No song is currently playing.")
+
 
 client.run(TOKEN)
