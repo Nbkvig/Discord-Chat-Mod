@@ -12,7 +12,8 @@ This is a simple discord bot written for our CPSC 362 Software Engineering cours
 - Reaction Roles
 - Music Player
 - Leveling System
-- Bot Dashboard (in progress)
+- Anti-Spam & Anti-Mention Spam
+- Bad language checks
 
 ## Usage
 
