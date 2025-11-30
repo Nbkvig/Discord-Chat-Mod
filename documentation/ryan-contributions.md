@@ -1,5 +1,32 @@
 # Ryan's Contributions
 
+## 11/25/25
+### What I did:
+* Updated moderation.py to handle spam, mention spam, and bad words
+* Spam: Will timeout users if they spam messages
+* Mention spam: Will mute users that spam @everyone/@here. Users will remain muted until an admin rmemoves it. 
+* Bad words: Will remove words that say something bad. It won't automatically mute/ban users, but will warn them to stop.
+* mkword: Make word. Adds it to the bad words dictionary. 
+* rmword: Remove word. Removes it from the dictionary.
+
+### What's next: 
+* Bad words: Uses one massive dictionary instead of using individual dictionaries for different servers. Right now, the intended use-case of the bot is one or a few servers to run in. Stakeholders (me) running the bot probably won't have an issue with this, but at the same time, the logical next step is to update this. 
+* Bad words: Its using a txt file. I will update this after the semester when I learn how to use SQL. For the time being, a txt file works fine as a database for such a small thing. 
+* Update dashboard
+
+### What broke or got weird: 
+* Bad words: Dictionary doesn't really work as well as I want it to. Will act weird if the file doesn't already exist, and needs proper permissions to create the file in the first place. Running the bot as root or using sudo fixes this, or changing the file permissions, but that's generally just not a smart idea in the first place. 
+
+## 11/23/25
+### What I did: 
+* Updated reaction_roles.py to make it persistent. It will store reaction roles from different guilds, and will store them if the bot turns off and back on
+
+### What's next:
+* Update moderation.py
+
+### What broke or got weird:
+* Nothing noticeably broken. 
+
 ## 11/3/25
 ### What I did: 
 * I worked mostly on the dashboard, which is in a separate repository. Its in a barebones state. Focused on getting it functional, not pretty. 
