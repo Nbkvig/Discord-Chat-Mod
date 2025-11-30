@@ -1,5 +1,15 @@
 # Ryan's Contributions
 
+## 11/29/25
+### What I did:
+* Updated main and flask_app to record new data from guilds. 
+
+### What's next: 
+* Update flask_app to work with multiple guilds. 
+
+### What broke or got weird: 
+* flask_app will continue to occupy the same port if main.py is exited using ctrl-z. On reboot, the port will be unavailable. Only exit using ctrl-c for now. 
+
 ## 11/25/25
 ### What I did:
 * Updated moderation.py to handle spam, mention spam, and bad words
