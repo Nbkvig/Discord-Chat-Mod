@@ -6,3 +6,5 @@ aiosqlite
 yt_dlp
 PyNaCl
 flask
+flask_cors
+json
