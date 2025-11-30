@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 from playlist import Playlist
 from song import Song
 
-
 # Token stuff
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -72,20 +71,42 @@ async def on_ready():
     except Exception as e:
         print(f'Error syncing commands: {e}')
 
+    update_stats()
+
     # Prints if the bot is running
     print(f"✅ Bot is live. Logged in as {client.user}")
 
-async def on_message(self, message):
-        if message.author == self.user:
-            return
-            
-        if message.content.startswith('hello'):
-            await message.channel.send(f'Hi there {message.author}')
-            await self.process_commands(message)
 
-@client.command()
-async def test(ctx):
-    await ctx.send("Test")
+# ======================================
+# Flask Stats
+# ======================================
+# This just sends things to flask_app to send to the front end. 
+
+def update_stats():
+    guilds = [guild.name for guild in client.guilds]
+    user_count = sum(guild.member_count for guild in client.guilds)
+    
+    # might remove this. The front end won't run if the bot isn't running. 
+    status = str(client.status)
+
+    voice_channels = []
+    for guild in client.guilds:
+        for channel in guild.voice_channels:
+            voice_channels.append(f"{guild.name}: {channel.name}")
+
+    text_channels = []
+    for guild in client.guilds:
+        for channel in guild.text_channels:
+            text_channels.append(f"{guild.name}: {channel.name}")
+    
+    roles = []
+    for guild in client.guilds:
+        for role in guild.roles:
+            if role.name != "@everyone":
+                roles.append(f"{guild.name}: {role.name}")
+    
+    # Send to flask_app
+    flask_app.update_bot_stats(guilds, user_count, status, voice_channels, text_channels, roles)
 
 
 # ========================================
