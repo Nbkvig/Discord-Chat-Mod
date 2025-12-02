@@ -8,3 +8,4 @@ PyNaCl
 flask
 flask_cors
 json
+spotipy
