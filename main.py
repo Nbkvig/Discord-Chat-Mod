@@ -256,16 +256,24 @@ async def leave(ctx):
 
 
 # =======================
-# YOUTUBE PLAYER
+# MUSIC PLAYER
 # =======================
 
-# FFmpeg options for streaming
+print("Loaded .env from:", os.getcwd())
+CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_ID")
+REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
+sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+    client_id=CLIENT_ID,
+    client_secret=CLIENT_SECRET,
+    #redirect_uri = REDIRECT_URI
+))
+
+# FFmpeg and YTDL setup
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn -c:a libopus -f opus'
 }
-
-# YTDL options to get playable audio URLs
 ytdl_opts = {
     'format': 'bestaudio/best',
     'quiet': True,
@@ -291,15 +299,13 @@ async def play_next(ctx):
         return
 
     try:
-        # Fetch fresh stream URL from the original YouTube page
         info = ytdl.extract_info(next_song.page_url, download=False)
         source_url = info['url']
-        next_song.base_url = source_url  # store current playable URL
+        next_song.base_url = source_url
 
-        # Play the audio
         vc.play(
             discord.FFmpegOpusAudio(source_url, **FFMPEG_OPTIONS),
-            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), ctx.bot.loop)
+            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), client.loop)
         )
 
         await ctx.send(embed=next_song.info.format_output("Now Playing 🎵"))
@@ -307,15 +313,13 @@ async def play_next(ctx):
     except Exception as e:
         await ctx.send(f"❌ Error playing {next_song.info.title}: {e}")
         print(f"Error in play_next: {e}")
-        await play_next(ctx)  # skip to next song if current fails
+        await play_next(ctx)
 
-
-# =======================
-# MUSIC COMMANDS
-# =======================
+# ----------------------------
+# Commands
+# ----------------------------
 @client.command()
 async def play(ctx, *, query):
-    """Add a song to the playlist and play it."""
     vc = ctx.voice_client
     if not vc:
         if ctx.author.voice:
@@ -325,16 +329,22 @@ async def play(ctx, *, query):
             return
 
     try:
-        # Extract info from YouTube (or search)
-        info = ytdl.extract_info(query, download=False)
-        if 'entries' in info:  # search result
-            info = info['entries'][0]
+        if "open.spotify.com" in query:
+            track = sp.track(query)
+            title = track['name']
+            artist = track['artists'][0]['name']
+            search = f"{title} {artist}"
+            info = ytdl.extract_info(search, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+        else:
+            info = ytdl.extract_info(query, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
 
-        # Create Song instance
         song = Song(
             origin="YouTube",
             host=ctx.author.name,
-            base_url=None,
             uploader=info.get('uploader', 'Unknown'),
             title=info.get('title', 'Unknown'),
             duration=info.get('duration'),
@@ -342,17 +352,15 @@ async def play(ctx, *, query):
             thumbnail=info.get('thumbnail')
         )
 
-        # Add song to playlist
         playlist.add_track(song)
         await ctx.send(embed=song.info.format_output("Added to Queue"))
 
-        # Start playback if nothing is playing
         if not vc.is_playing() and playlist.get_len() > 0:
             await play_next(ctx)
 
     except Exception as e:
-        await ctx.send(f"❌ Failed to add/play song: {e}")
-        print(f"Error in play command: {e}")
+        await ctx.send(f"❌ Failed to play song: {e}")
+        print(e)
 
 @client.command()
 async def pause(ctx):
