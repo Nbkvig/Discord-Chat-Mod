@@ -1,0 +1,36 @@
+'input this into planttext.com for an image. update with your cases.'
+
+@startuml
+skinparam actorStyle awesome
+actor Administrator as a
+actor User as u 
+
+package reaction_roles {
+  usecase "reactionrole_embed"
+  usecase "addrole"
+  usecase "on_raw_reaction_add"
+  usecase "on_raw_reaction_remove"
+  }
+
+package moderation {
+  usecase "trigger check_spam"
+  usecase "trigger check_mention_spam"
+  usecase "trigger bad_words"
+  usecase "mkword"
+  usecase "rmword"
+}
+
+
+a -down-> reactionrole_embed
+a -down-> addrole
+a -down-> mkword
+a -down-> rmword
+
+"trigger check_spam" <-up- u
+"trigger check_mention_spam" <-up- u
+"trigger bad_words" <-up- u
+on_raw_reaction_add <-up- u
+on_raw_reaction_remove <-up- u
+
+
+@enduml
