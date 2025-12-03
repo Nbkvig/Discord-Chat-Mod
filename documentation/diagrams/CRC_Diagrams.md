@@ -1,6 +1,6 @@
 # CRC Diagrams
 
-reaction_roles.py
+## /cogs/reaction_roles.py
 | Collaboators            | Purpose                                                                |
 | ----------------- | ------------------------------------------------------------------ |
 | `discord.Client` | Access bot instance and shared state |
@@ -14,9 +14,17 @@ reaction_roles.py
 | JSON | Store configuration data |
 | File system | Read/Write to `data/reaction_roles.json` |
 
-| reaction_roles.py             | Collaboators                                                                |
+## /cogs/moderation.py
+
+| Collaboators            | Purpose                                                                |
 | ----------------- | ------------------------------------------------------------------ |
-| `check_spam()` |  |
-| `check_mention_spam()` |  |
-| `check_bad_words` | `/data/bad_words.txt` |
-|  | |
+| `discord.Client` | Access bot instance |
+| `discord.Message` | Access message content, author, channel, and delete messages |
+| `discord.Member` | Apply timouts and change permissions for members |
+| `discord.Guild` | Access specific server and channels for muting |
+| `discord.TextChannel` | Send warning messages and modify permissions |
+| `discord.Interaction` | Recieve and respond to slash commands |
+| `commands.CooldownMapping` | Track rate limits and violations per member |
+| `commands.BucketType` | Define individual member rate limiting |
+| `datetime.timedelta` | Define timeout durations |
+| File System | Read/Write to `data/bad_words.txt` |
