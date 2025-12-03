@@ -1,5 +1,17 @@
 # CRC Diagrams
 
+## main.py
+| Collaboators            | Purpose                                                                |
+| ----------------- | ------------------------------------------------------------------ |
+| `discord.commands.Bot` | Core bot functionality and command handling |
+| `discord.Guild` | Access server information, members, roles, channels |
+| `discord.Member` | User operations (kick, ban, voice state |
+| `discord.VoiceClient` | Voice channel connection and audio |
+| `discord.Embed` | Format level info and music displays |
+| `flask_app` | Basic API layer for bot stats |
+| `threading.Thread` |  Runs flask server concurrently |
+
+
 ## /cogs/reaction_roles.py
 | Collaboators            | Purpose                                                                |
 | ----------------- | ------------------------------------------------------------------ |
