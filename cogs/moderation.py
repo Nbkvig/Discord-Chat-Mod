@@ -1,13 +1,7 @@
-# moderation.py
-#
-# provides spam tools, mention spam tools, and bad word checks. 
-#
 import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
-
-GUILD_ID = discord.Object(id=1415377687526248582)
 
 
 class moderation(commands.Cog):
@@ -102,7 +96,6 @@ class moderation(commands.Cog):
     # Make word. Adds a word to the dictionary.
     #
     @app_commands.command(name="mkword", description="Add a bad word to the dictionary")
-    @app_commands.guilds(GUILD_ID)
     async def mkword(self, interaction: discord.Interaction, word: str):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("This command requires admin permissions.", ephemeral=True)
@@ -111,14 +104,19 @@ class moderation(commands.Cog):
         if not self.bad_words: 
             self.bad_words = []
 
-        word_lower = word.lower()
-        if word_lower not in self.bad_words:
-            self.bad_words.append(word_lower)
+        msglower = word.lower()
+        if msglower not in self.bad_words:
+            self.bad_words.append(msglower)
 
-        with open('data/bad_words.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{word}\n")
+            with open('data/bad_words.txt', 'a', encoding='utf-8') as f:
+                f.write(f"{word}\n")
 
-        await interaction.response.send_message(f"Success! Your bad word has been added to the dictionary!", ephemeral=True)
+            self.load_bad_words()
+        
+            await interaction.response.send_message(f"Success! Your bad word has been added to the dictionary!", ephemeral=True)
+        
+        else:
+            interaction.response.send_message(f"This word is already in the dictionary!")
 
 
     # rmword()
@@ -126,14 +124,13 @@ class moderation(commands.Cog):
     # removes a word from the dictionary
     #
     @app_commands.command(name="rmword", description="Remove a bad word from the dictionary")
-    @app_commands.guilds(GUILD_ID)
     async def rmword(self, interaction: discord.Interaction, word: str):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("This command requires admin permissions.", ephemeral=True)
             return
         
         if not self.bad_words:
-            await  interaction.response.send_message("Uh oh! The dictionary is empty!", ephemeral=True)
+            await interaction.response.send_message("Uh oh! The dictionary is empty!", ephemeral=True)
             return
         
         word_lower = word.lower()
@@ -148,6 +145,8 @@ class moderation(commands.Cog):
             f.write("# Bad words\n")
             for w in self.bad_words:
                 f.write(f"{w}\n")
+
+        self.load_bad_words()
             
         await interaction.response.send_message(f"Success! Your bad word has been removed from the dictionary!", ephemeral=True)
 
