@@ -1,13 +1,23 @@
 # flask_app.py
-# this is the API for discord bot.
-
-from flask import Flask, render_template, jsonify, request
+#
+# Starts the dashboard for people to see bot data.
+# Also provides an API. 
+from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_cors import CORS
+import os
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder='../frontend/dist'
+)
 CORS(app)
 
-# Data structure for stats
+
+# =================================
+# Flask API
+# =================================
+
+
 bot_stats = {
     "guilds": [],
     "voice-channels": [],
@@ -19,7 +29,6 @@ bot_stats = {
 }
 
 
-# Updates data structure
 def update_bot_stats(guilds, user_count, status, voice_channels, text_channels, roles):
     bot_stats['guilds'] = guilds
     bot_stats['users'] = user_count
@@ -28,25 +37,30 @@ def update_bot_stats(guilds, user_count, status, voice_channels, text_channels, 
     bot_stats['text-channels'] = text_channels
     bot_stats['roles'] = roles
 
-
-@app.route('/api/bot-stats', methods=['GET'])
+@app.route('/api/bot-stats')
 def get_bot_stats():    
     return jsonify(bot_stats)
 
 
-@app.route('/')
-def home():
-        return render_template('home.html', guilds=get_guilds())
+# =================================
+# React Dashboard
+# =================================
 
 
-def get_guilds():
-    file = open('guilds.txt', 'r')
-    data = file.readlines()
-    file.close()
-    data = [i.replace('\n','') for i in data]
-    data = [i.split(":") for i in data]
-    guilds = data
-    return guilds
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+
+    if path == "":
+        return send_from_directory(app.static_folder, 'index.html')
+    
+
+    file_path = os.path.join(app.static_folder, path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return send_from_directory(app.static_folder, path)
+    
+    
+    return send_from_directory(app.static_folder, 'index.html')
 
 
 def run_flask():
