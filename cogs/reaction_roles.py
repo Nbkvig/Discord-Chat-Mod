@@ -2,7 +2,6 @@
 # 
 # Allows for users to configure emoji reactions to allow for roles to be added.
 # Can use either the bot to message via embed or an existing user message.
-# TODO: Replace all print statements to input into an audit log database. 
 #
 import discord
 from discord import app_commands
@@ -10,7 +9,6 @@ from discord.ext import commands
 import json
 import os
 
-GUILD_ID = discord.Object(id=1415377687526248582)
 
 class reaction_roles(commands.Cog):
     def __init__(self, client):
@@ -75,7 +73,6 @@ class reaction_roles(commands.Cog):
         title="Title of the embed",
         description="Description text for the embed"
     )
-    @app_commands.guilds(GUILD_ID)
     async def reaction_role(self, interaction: discord.Interaction, title: str, description: str):
         # Check if the user has admin permissions
         if not interaction.user.guild_permissions.administrator:
@@ -112,7 +109,6 @@ class reaction_roles(commands.Cog):
         emoji="The emoji to use",
         role="The role to assign"
     )
-    @app_commands.guilds(GUILD_ID)
     async def add_role(self, interaction: discord.Interaction, message_id: str, emoji: str, role: discord.Role):
         
         # Checks if the user is an admin 
