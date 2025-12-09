@@ -7,29 +7,30 @@ import yt_dlp
 import spotipy
 from threading import Thread
 from discord.ext import commands
-from discord import FFmpegPCMAudio
-from discord import Member
+from discord import FFmpegPCMAudio, Member
 from discord.ext.commands import has_permissions, MissingPermissions
 from dotenv import load_dotenv 
 from spotipy.oauth2 import SpotifyClientCredentials
 from playlist import Playlist
 from song import Song
 
-# Token stuff
+
+# ======================================
+# Configuration + on_ready()
+# ======================================
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 if TOKEN is None:
     raise ValueError("No Token Found.")
 
-# TODO: We need to make this more portable. 
-GUILD_ID = 1415377687526248582
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 intents.guilds = True
 intents.members = True
+
 
 client = commands.Bot(command_prefix="/", intents=intents)
 
@@ -39,21 +40,10 @@ client = commands.Bot(command_prefix="/", intents=intents)
 async def on_ready():
     print("Bot connecting...")
 
+
     # initialize database on startup
     await lvl.init_db()
 
-    # Multithreading for Flask
-    flask_thread = Thread(target=flask_app.run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-    
-    # This creates a file guilds.txt that stores all the servers that the bot is in. 
-    file = open('guilds.txt', 'w+')
-    guilds = client.guilds
-    
-    for guild in guilds:
-        file.write(f'{guild.id}:{guild.name}\n')
-    file.close()
 
     # Load cogs
     for filename in os.listdir('./cogs'):
@@ -65,17 +55,20 @@ async def on_ready():
             except Exception as e:
                 print(f'Failed to load {cog_name}: {e}')
 
-    # Sync slash commands
-    try:
-        guild = discord.Object(id=GUILD_ID)
-        synced = await client.tree.sync(guild=guild)
-        print(f'Synced {len(synced)} commands to guild {guild.id}')
-    except Exception as e:
-        print(f'Error syncing commands: {e}')
 
+    # Sync slash commands
+    for guild in client.guilds:
+        try:
+            synced = await client.tree.sync(guild=discord.Object(id=guild.id))
+            print(f'Synced {len(synced)} commands to guild {guild.id} ({guild.name})')
+        except Exception as e:
+            print(f'Error syncing commands for guild {guild.id}: {e}')
+
+
+    # Send Stats to API. 
     update_stats()
 
-    # Prints if the bot is running
+
     print(f"✅ Bot is live. Logged in as {client.user}")
 
 
@@ -86,21 +79,26 @@ async def on_ready():
 
 def update_stats():
     guilds = [guild.name for guild in client.guilds]
+
+
     user_count = sum(guild.member_count for guild in client.guilds)
     
-    # might remove this. The front end won't run if the bot isn't running. 
+    
     status = str(client.status)
+    
 
     voice_channels = []
     for guild in client.guilds:
         for channel in guild.voice_channels:
             voice_channels.append(f"{guild.name}: {channel.name}")
 
+
     text_channels = []
     for guild in client.guilds:
         for channel in guild.text_channels:
             text_channels.append(f"{guild.name}: {channel.name}")
     
+
     roles = []
     for guild in client.guilds:
         for role in guild.roles:
@@ -258,24 +256,16 @@ async def leave(ctx):
 
 
 # =======================
-# MUSIC PLAYER
+# YOUTUBE PLAYER
 # =======================
 
-print("Loaded .env from:", os.getcwd())
-CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_ID")
-REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
-sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    #redirect_uri = REDIRECT_URI
-))
-
-# FFmpeg and YTDL setup
+# FFmpeg options for streaming
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn -c:a libopus -f opus'
 }
+
+# YTDL options to get playable audio URLs
 ytdl_opts = {
     'format': 'bestaudio/best',
     'quiet': True,
@@ -301,13 +291,15 @@ async def play_next(ctx):
         return
 
     try:
+        # Fetch fresh stream URL from the original YouTube page
         info = ytdl.extract_info(next_song.page_url, download=False)
         source_url = info['url']
-        next_song.base_url = source_url
+        next_song.base_url = source_url  # store current playable URL
 
+        # Play the audio
         vc.play(
             discord.FFmpegOpusAudio(source_url, **FFMPEG_OPTIONS),
-            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), client.loop)
+            after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), ctx.bot.loop)
         )
 
         await ctx.send(embed=next_song.info.format_output("Now Playing 🎵"))
@@ -315,13 +307,15 @@ async def play_next(ctx):
     except Exception as e:
         await ctx.send(f"❌ Error playing {next_song.info.title}: {e}")
         print(f"Error in play_next: {e}")
-        await play_next(ctx)
+        await play_next(ctx)  # skip to next song if current fails
 
-# ----------------------------
-# Commands
-# ----------------------------
+
+# =======================
+# MUSIC COMMANDS
+# =======================
 @client.command()
 async def play(ctx, *, query):
+    """Add a song to the playlist and play it."""
     vc = ctx.voice_client
     if not vc:
         if ctx.author.voice:
@@ -331,22 +325,16 @@ async def play(ctx, *, query):
             return
 
     try:
-        if "open.spotify.com" in query:
-            track = sp.track(query)
-            title = track['name']
-            artist = track['artists'][0]['name']
-            search = f"{title} {artist}"
-            info = ytdl.extract_info(search, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-        else:
-            info = ytdl.extract_info(query, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
+        # Extract info from YouTube (or search)
+        info = ytdl.extract_info(query, download=False)
+        if 'entries' in info:  # search result
+            info = info['entries'][0]
 
+        # Create Song instance
         song = Song(
             origin="YouTube",
             host=ctx.author.name,
+            base_url=None,
             uploader=info.get('uploader', 'Unknown'),
             title=info.get('title', 'Unknown'),
             duration=info.get('duration'),
@@ -354,15 +342,17 @@ async def play(ctx, *, query):
             thumbnail=info.get('thumbnail')
         )
 
+        # Add song to playlist
         playlist.add_track(song)
         await ctx.send(embed=song.info.format_output("Added to Queue"))
 
+        # Start playback if nothing is playing
         if not vc.is_playing() and playlist.get_len() > 0:
             await play_next(ctx)
 
     except Exception as e:
-        await ctx.send(f"❌ Failed to play song: {e}")
-        print(e)
+        await ctx.send(f"❌ Failed to add/play song: {e}")
+        print(f"Error in play command: {e}")
 
 @client.command()
 async def pause(ctx):
@@ -419,4 +409,12 @@ async def skip(ctx):
         await ctx.send("❌ No song is currently playing.")
 
 
-client.run(TOKEN)
+# ======================================
+# Entry Point (please don't touuch this)
+# ======================================
+if __name__ == "__main__":
+    flask_thread = Thread(target=flask_app.run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    client.run(TOKEN)
