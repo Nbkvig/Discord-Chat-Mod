@@ -1,36 +1,59 @@
-'input this into planttext.com for an image. update with your cases.'
-
 @startuml
 skinparam actorStyle awesome
 actor Administrator as a
-actor User as u 
+actor User as u
 
 package reaction_roles {
-  usecase "reactionrole_embed"
-  usecase "addrole"
-  usecase "on_raw_reaction_add"
-  usecase "on_raw_reaction_remove"
-  }
-
-package moderation {
-  usecase "trigger check_spam"
-  usecase "trigger check_mention_spam"
-  usecase "trigger bad_words"
-  usecase "mkword"
-  usecase "rmword"
+  usecase "reactionrole_embed" as embed
+  usecase "addrole" as addrole
+  usecase "on_raw_reaction_add" as add_react
+  usecase "on_raw_reaction_remove" as remove_react
 }
 
+package moderation {
+  usecase "trigger check_spam" as spam
+  usecase "trigger check_mention_spam" as mention_spam
+  usecase "trigger bad_words" as bad_words
+  usecase "mkword (Add Bad Word)" as mkword
+  usecase "rmword (Remove Bad Word)" as rmword
+}
 
-a -down-> reactionrole_embed
+package music_player {
+  usecase "join (Voice Channel)" as join
+  usecase "leave (Voice Channel)" as leave
+  usecase "play (Song/Query)" as play
+  usecase "pause" as pause
+  usecase "resume" as resume
+  usecase "queue (View)" as queue
+  usecase "clear (Queue)" as clear
+  usecase "skip" as skip
+}
+
+' ======================================
+' Connections
+' ======================================
+
+' --- Administrator Actions ---
+a -down-> embed
 a -down-> addrole
 a -down-> mkword
 a -down-> rmword
 
-"trigger check_spam" <-up- u
-"trigger check_mention_spam" <-up- u
-"trigger bad_words" <-up- u
-on_raw_reaction_add <-up- u
-on_raw_reaction_remove <-up- u
+' --- User Actions (Non-Music) ---
+u -up-> spam
+u -up-> mention_spam
+u -up-> bad_words
+u -up-> add_react
+u -up-> remove_react
 
+' --- User Actions (Music Player) ---
+u -up-> join
+u -up-> leave
+u -up-> play
+u -up-> pause
+u -up-> resume
+u -up-> queue
+u -up-> clear
+u -up-> skip
 
 @enduml
