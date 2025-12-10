@@ -18,17 +18,16 @@ This is a simple discord bot written for our CPSC 362 Software Engineering cours
 ## Usage
 
 1. Clone this repository 
-2. Create a file ```.env```. From there, paste the following, paste the following and replace the text with your unique discord token, spotify client id, and spotify client secret. 
+2. In the backend folder, create a file ```.env```. From there, paste the following, paste the following and replace the text with your unique discord token, spotify client id, and spotify client secret. 
 
 ```bash
-    Discord Bot Token
     DISCORD_TOKEN=your_token_here
     SPOTIPY_CLIENT_ID=your_id_here
     SPOTIPY_CLIENT_SECRET=your_seret_here
 ```
 
-3. After that, use ```pip install -r requirements.txt``` to install the required dependencies for the bot. 
-4. Start the bot with ```python3 main.py```
+3. After that, use ```pip install -r requirements.txt``` in the root folder to install the required dependencies for the bot. 
+4. Start the bot with ```python3 main.py```. Optionally, look at http://localhostt:8005 to see live data from the bot. 
 
 ## Authors
 
