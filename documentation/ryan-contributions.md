@@ -1,5 +1,15 @@
 # Ryan's Contributions
 
+# 12/9/25
+### What I did:
+* Tied front and back together
+
+### What's next:
+* I'll update things to be more optimal over winter, if I feel like it. Next steps would be to use more databases and to expand the dashboard. 
+
+### What broke or got weird:
+* Nothing to report. 
+
 ## 11/29/25
 ### What I did:
 * Updated main and flask_app to record new data from guilds. 

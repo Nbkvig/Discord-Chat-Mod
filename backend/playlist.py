@@ -64,4 +64,3 @@ class Playlist:
         prev_track = self.playlist_history.pop()
         self.playlist.appendleft(prev_track)
         return prev_track
-
