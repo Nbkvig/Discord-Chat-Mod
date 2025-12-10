@@ -1,8 +1,17 @@
 @startuml
+left to right direction
 skinparam actorStyle awesome
-actor Administrator as a
-actor User as u
+skinparam packageStyle rectangle
+skinparam packagePadding 10
+skinparam maxMessageSize 30
 
+actor "Administrator" as a
+actor "User" as u
+actor "Bot" as b
+
+' -------------------------------
+' Packages
+' -------------------------------
 package reaction_roles {
   usecase "reactionrole_embed" as embed
   usecase "addrole" as addrole
@@ -29,24 +38,37 @@ package music_player {
   usecase "skip" as skip
 }
 
-' ======================================
-' Connections
-' ======================================
+package leveling_system {
+  usecase "Send message → Gain XP" as send_msg
+  usecase "/level" as level_cmd
+  usecase "/leaderboard" as leaderboard_cmd
+  usecase "/reset (Admin only)" as reset_cmd
+  usecase "User joins server" as user_join
+  usecase "Add user to database" as add_db
+  usecase "User leaves server" as user_leave
+  usecase "Delete user from database" as del_db
+}
 
-' --- Administrator Actions ---
+' -------------------------------
+' Administrator connections
+' -------------------------------
 a -down-> embed
 a -down-> addrole
 a -down-> mkword
 a -down-> rmword
+a -down-> reset_cmd
 
-' --- User Actions (Non-Music) ---
+' -------------------------------
+' User connections
+' -------------------------------
 u -up-> spam
 u -up-> mention_spam
 u -up-> bad_words
 u -up-> add_react
 u -up-> remove_react
-
-' --- User Actions (Music Player) ---
+u -up-> send_msg
+u -up-> level_cmd
+u -up-> leaderboard_cmd
 u -up-> join
 u -up-> leave
 u -up-> play
@@ -55,5 +77,13 @@ u -up-> resume
 u -up-> queue
 u -up-> clear
 u -up-> skip
+
+' -------------------------------
+' Bot connections for leveling system
+' -------------------------------
+b -right-> user_join
+b -right-> user_leave
+user_join --> add_db
+user_leave --> del_db
 
 @enduml
