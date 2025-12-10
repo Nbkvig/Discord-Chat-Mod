@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
+from actionlogger import log_action
 
 
 class moderation(commands.Cog):
@@ -87,6 +88,7 @@ class moderation(commands.Cog):
         for bad_word in self.bad_words:
             if bad_word in msglower:
                 await message.delete()
+                log_action(f'Removed {message.author} message for bad language.')
                 await message.channel.send(f"{message.author.mention}, please use kinder language.", delete_after=10)
                 return
             
@@ -112,8 +114,10 @@ class moderation(commands.Cog):
                 f.write(f"{word}\n")
 
             self.load_bad_words()
-        
+
+            log_action(f'Bad word {msglower} added')
             await interaction.response.send_message(f"Success! Your bad word has been added to the dictionary!", ephemeral=True)
+            
         
         else:
             interaction.response.send_message(f"This word is already in the dictionary!")
@@ -133,13 +137,13 @@ class moderation(commands.Cog):
             await interaction.response.send_message("Uh oh! The dictionary is empty!", ephemeral=True)
             return
         
-        word_lower = word.lower()
+        msglower = word.lower()
 
-        if word_lower not in self.bad_words:
+        if msglower not in self.bad_words:
             await interaction.response.send_message(f"Uh oh! This word isn't in the dictionary!", ephemeral=True)
             return
         
-        self.bad_words.remove(word_lower)
+        self.bad_words.remove(msglower)
         
         with open('data/bad_words.txt', 'w', encoding='utf-8') as f:
             f.write("# Bad words\n")
@@ -147,7 +151,8 @@ class moderation(commands.Cog):
                 f.write(f"{w}\n")
 
         self.load_bad_words()
-            
+        
+        log_action(f'Bad word {msglower} removed')
         await interaction.response.send_message(f"Success! Your bad word has been removed from the dictionary!", ephemeral=True)
 
 
@@ -178,8 +183,8 @@ class moderation(commands.Cog):
                 await message.author.timeout(timedelta(minutes = 1), reason = "Spamming")
 
                 # Too many violations - could timeout/kick/ban here
-                await message.channel.send(
-                    f"{message.author.mention} has been warned for excessive spam violations!", delete_after=10)
+                log_action(f'Warned {message.author} for spamming')
+                await message.channel.send(f"{message.author.mention} has been warned for excessive spam violations!", delete_after=10)
 
 
     # check_mention_spam()
@@ -208,6 +213,7 @@ class moderation(commands.Cog):
             if violations_check:
                for channel in message.guild.text_channels:
                    await channel.set_permissions(message.author, send_messages=False, reason="Spamming @everyone/@here, possible compromised account?")
+            log_action(f'Muted {message.author} for mention spamming')
             await message.channel.send(f"{message.author.mention} has been muted for spamming mass mentions. Contact an admin for reinstatement.")
     
 

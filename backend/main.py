@@ -6,6 +6,7 @@ import asyncio
 import yt_dlp
 import spotipy
 from threading import Thread
+from datetime import datetime
 from discord.ext import commands
 from discord import FFmpegPCMAudio, Member
 from discord.ext.commands import has_permissions, MissingPermissions
@@ -13,7 +14,7 @@ from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyClientCredentials
 from playlist import Playlist
 from song import Song
-
+from actionlogger import log_action
 
 # ======================================
 # Configuration + on_ready()

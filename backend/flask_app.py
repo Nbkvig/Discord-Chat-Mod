@@ -4,6 +4,7 @@
 # Also provides an API. 
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_cors import CORS
+import json
 import os
 
 app = Flask(
@@ -23,6 +24,7 @@ bot_stats = {
     "voice-channels": [],
     "text-channels": [],
     "roles": [],
+    "recent-actions": [],
     "users": 0,
     "status": "offline"
 
@@ -41,6 +43,15 @@ def update_bot_stats(guilds, user_count, status, voice_channels, text_channels, 
 def get_bot_stats():    
     return jsonify(bot_stats)
 
+
+@app.route('/api/recent-actions')
+def get_recent_actions():
+    try:
+        with open('data/logs.json', 'r') as f:
+            actions = json.load(f)
+        return jsonify(actions[-5:])
+    except FileNotFoundError:
+        return jsonify([])
 
 # =================================
 # React Dashboard

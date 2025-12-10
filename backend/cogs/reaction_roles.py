@@ -6,6 +6,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from actionlogger import log_action
 import json
 import os
 
@@ -90,10 +91,11 @@ class reaction_roles(commands.Cog):
         self.client.reaction_role_messages[message.id] = {}
         self.save_reaction_roles()
 
+        log_action(f'Created new reaction roles instance with message {message.id}')
         await interaction.followup.send(
             f"Reaction role message created!\n"
             f"Message ID: `{message.id}`\n\n"
-            f"Now use `/addrole {message.id}` to add emoji-role pairs.",
+            f"To add roles, use `/addrole {message.id}` to add emoji-role pairs.",
             ephemeral=True
         )
 
@@ -135,6 +137,7 @@ class reaction_roles(commands.Cog):
             self.client.reaction_role_messages[msg_id][emoji] = role.name
             self.save_reaction_roles()
 
+            log_action(f'Added an emoji for {role.mention} to {message_id}')
             await interaction.response.send_message(f"Successfully added {emoji} -> {role.mention}", ephemeral=True)
 
         # Wrong message ID
@@ -192,6 +195,7 @@ class reaction_roles(commands.Cog):
 
             if role and member:
                 await member.add_roles(role)
+                log_action(f'Assigned {role.name} to {member}')
                 print(f'[reaction_roles.py] Assigned {role.name} to {member}')
 
     #
@@ -227,6 +231,7 @@ class reaction_roles(commands.Cog):
             
             if role and member:
                 await member.remove_roles(role)
+                log_action(f'Removed {role.name} to {member}')
                 print(f"[reaction_roles.py] Removed {role_name} from {member}")
 
 async def setup(client):
