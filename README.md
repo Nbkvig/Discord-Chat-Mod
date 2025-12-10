@@ -27,7 +27,7 @@ This is a simple discord bot written for our CPSC 362 Software Engineering cours
 ```
 
 3. After that, use ```pip install -r requirements.txt``` in the root folder to install the required dependencies for the bot. 
-4. Start the bot with ```python3 main.py```. Optionally, look at http://localhostt:8005 to see live data from the bot. 
+4. Start the bot with ```python3 main.py```. Optionally, look at http://localhost:8005 to see live data from the bot. 
 
 ## Authors
 
